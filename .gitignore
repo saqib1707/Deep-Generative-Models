@@ -1,0 +1,5 @@
+data/
+VanillaVAE/version_0/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
