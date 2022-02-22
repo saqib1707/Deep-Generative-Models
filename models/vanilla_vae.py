@@ -7,7 +7,6 @@ from .types_ import *
 
 class VanillaVAE(BaseVAE):
 
-
     def __init__(self,
                  in_channels: int,
                  latent_dim: int,
@@ -31,16 +30,17 @@ class VanillaVAE(BaseVAE):
                     nn.LeakyReLU(negative_slope=1e-2))
             )
             in_channels = h_dim
+        
+        self.last_wh = 2
 
         self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1]*4, latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1]*4, latent_dim)
-
+        self.fc_mu = nn.Linear(hidden_dims[-1] * self.last_wh * self.last_wh, latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1] * self.last_wh * self.last_wh, latent_dim)
 
         # Build Decoder
         modules = []
 
-        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * 4)
+        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * self.last_wh * self.last_wh)
 
         hidden_dims.reverse()
 
@@ -56,8 +56,6 @@ class VanillaVAE(BaseVAE):
                     nn.BatchNorm2d(hidden_dims[i + 1]),
                     nn.LeakyReLU())
             )
-
-
 
         self.decoder = nn.Sequential(*modules)
 
@@ -99,7 +97,7 @@ class VanillaVAE(BaseVAE):
         :return: (Tensor) [B x C x H x W]
         """
         result = self.decoder_input(z)
-        result = result.view(-1, 512, 2, 2)
+        result = result.view(-1, 512, self.last_wh, self.last_wh)
         result = self.decoder(result)
         result = self.final_layer(result)
         return result
@@ -155,8 +153,7 @@ class VanillaVAE(BaseVAE):
         :param current_device: (Int) Device to run the model
         :return: (Tensor)
         """
-        z = torch.randn(num_samples,
-                        self.latent_dim)
+        z = torch.randn(num_samples, self.latent_dim)
 
         z = z.to(current_device)
 
@@ -169,5 +166,4 @@ class VanillaVAE(BaseVAE):
         :param x: (Tensor) [B x C x H x W]
         :return: (Tensor) [B x C x H x W]
         """
-
         return self.forward(x)[0]

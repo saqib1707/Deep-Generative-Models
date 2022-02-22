@@ -27,6 +27,8 @@ class ChestXRay(Dataset):
     def __getitem__(self, idx):
         img_path = self.img_paths[idx]
         img = cv2.imread(img_path)
+#         print(img.shape)
+
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # img = PIL.Image.open(img_path)
@@ -166,54 +168,56 @@ class VAEDataset(LightningDataModule):
         #     download=False,
         # )
 
-#       =========================  ChestXRay Dataset  =========================    
-        train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                              transforms.CenterCrop(1000),
-                                              transforms.Resize(self.patch_size),
-                                              transforms.ToTensor(),])
-    
-        test_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                            transforms.CenterCrop(1000),
-                                            transforms.Resize(self.patch_size),
-                                            transforms.ToTensor(),])
-        
-        val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                            transforms.CenterCrop(1000),
-                                            transforms.Resize(self.patch_size),
-                                            transforms.ToTensor(),])
+#       =========================  ChestXRay Dataset  ========================= 
 
-        train_data_path = os.path.join(self.data_dir, "chest_xray/train/")
-        test_data_path = os.path.join(self.data_dir, "chest_xray/test/")
-        val_data_path = os.path.join(self.data_dir, "chest_xray/val/")
+        # loading the training data
+        train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.CenterCrop(1000),
+                                                  transforms.Resize(self.patch_size), transforms.ToTensor(),])
 
-        print(train_data_path, test_data_path, val_data_path)
-
+        train_data_path = os.path.join(self.data_dir, "train/")
+        print("Train Data Path:", train_data_path)
         train_img_paths = []
-        test_img_paths = []
-        val_img_paths = []
-
+        
         for data_path in glob.glob(train_data_path + "*"):
             # print(data_path)
             train_img_paths.append(data_path)
-
+        
         print("Number of train imgs:", len(train_img_paths))
         # train_img_paths = list(flatten(train_img_paths))
-#         random.shuffle(train_img_paths)
+        # random.shuffle(train_img_paths)
+        self.train_dataset = ChestXRay(train_img_paths, transform=train_transforms)
+        
+        # ------------------------------------------------------------------------------
+        
+        # loading the validation data
+        val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.CenterCrop(1000),
+                                                transforms.Resize(self.patch_size), transforms.ToTensor(),])
 
-        for data_path in glob.glob(test_data_path + "*"):
-            test_img_paths.append(data_path)
-
-        print("Number of test imgs:", len(test_img_paths))
-        # test_img_paths = list(flatten(test_img_paths))
+        val_data_path = os.path.join(self.data_dir, "val/")
+        print("Validation Data Path:", val_data_path)
+        val_img_paths = []
         
         for data_path in glob.glob(val_data_path + "*"):
             val_img_paths.append(data_path)
 
         print("Number of validation imgs:", len(val_img_paths))
-
-        self.train_dataset = ChestXRay(train_img_paths, transform=train_transforms)
-        self.test_dataset = ChestXRay(test_img_paths, transform=test_transforms)
         self.val_dataset = ChestXRay(val_img_paths, transform=val_transforms)
+        
+        # ------------------------------------------------------------------------------
+    
+        # loading the test data
+        test_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.CenterCrop(1000),
+                                                transforms.Resize(self.patch_size), transforms.ToTensor(),])
+
+        test_data_path = os.path.join(self.data_dir, "test/")
+        print("Test Data Path:", test_data_path)
+        test_img_paths = []
+        
+        for data_path in glob.glob(test_data_path + "*"):
+            test_img_paths.append(data_path)
+
+        print("Number of test imgs:", len(test_img_paths))
+        self.test_dataset = ChestXRay(test_img_paths, transform=test_transforms)
 
 #       ===============================================================
         
@@ -236,11 +240,20 @@ class VAEDataset(LightningDataModule):
         )
     
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
-        return DataLoader(
-            self.test_dataset,
-            batch_size=8,
-            num_workers=self.num_workers,
-            shuffle=True,
-            pin_memory=self.pin_memory,
-        )
+        if self.test_dataset is None:
+            return DataLoader(
+                self.val_dataset,
+                batch_size=self.val_batch_size,
+                num_workers=self.num_workers,
+                shuffle=True,
+                pin_memory=self.pin_memory,
+            )
+        else:
+            return DataLoader(
+                self.test_dataset,
+                batch_size=self.train_batch_size,
+                num_workers=self.num_workers,
+                shuffle=True,
+                pin_memory=self.pin_memory,
+            )
      
