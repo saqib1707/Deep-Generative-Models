@@ -11,6 +11,12 @@ import torchvision.utils as vutils
 from torchvision.datasets import CelebA
 from torch.utils.data import DataLoader
 
+from torchvision.transforms import ToPILImage
+
+from inception_score import inception_score as IS
+from torchmetrics.image.fid import FrechetInceptionDistance
+from torchmetrics.image.inception import InceptionScore
+
 
 class VAEXperiment(pl.LightningModule):
 
@@ -27,6 +33,9 @@ class VAEXperiment(pl.LightningModule):
             self.hold_graph = self.params['retain_first_backpass']
         except:
             pass
+        
+        self.IS_handler = InceptionScore()
+        self.FID_handler = FrechetInceptionDistance(feature=64)
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -69,6 +78,19 @@ class VAEXperiment(pl.LightningModule):
 
 #         test_input, test_label = batch
         recons = self.model.generate(test_input, labels = test_label)
+    
+        # compute the FID score
+        # generate two slightly overlapping image intensity distributions
+#         imgs_dist1 = torch.randint(0, 200, (100, 3, 299, 299), dtype=torch.uint8)
+#         imgs_dist2 = torch.randint(100, 255, (100, 3, 299, 299), dtype=torch.uint8)
+        
+#         imgs_dist1 = imgs_dist1.to(self.curr_device)
+#         imgs_dist2 = imgs_dist2.to(self.curr_device)
+        
+#         self.FID_handler.update(imgs_dist1, real=True)
+#         self.FID_handler.update(imgs_dist2, real=False)
+#         print("FID Score:", self.FID_handler.compute())
+        
         vutils.save_image(recons.data,
                           os.path.join(self.logger.log_dir , 
                                        "Reconstructions", 
@@ -80,6 +102,30 @@ class VAEXperiment(pl.LightningModule):
             samples = self.model.sample(144,
                                         self.curr_device,
                                         labels = test_label)
+            
+            sample_imgs = samples.cpu().data
+            
+            max_val = torch.max(sample_imgs)
+            min_val = torch.min(sample_imgs)
+            sample_imgs_uint8 = (sample_imgs - min_val) / (max_val - min_val)
+            sample_imgs_uint8 = torch.tensor(sample_imgs_uint8*255, dtype=torch.uint8)
+            
+            max_val = torch.max(test_input)
+            min_val = torch.min(test_input)
+            test_input_uint8 = (test_input - min_val) / (max_val - min_val)
+            test_input_uint8 = torch.tensor(test_input_uint8*255, dtype=torch.uint8)
+            
+            imgs_dist1 = test_input_uint8.to(self.curr_device)
+            imgs_dist2 = sample_imgs_uint8.to(self.curr_device)
+            
+            self.FID_handler.update(imgs_dist1, real=True)
+            self.FID_handler.update(imgs_dist2, real=False)
+            print("FID Score from Torchmetrics:", self.FID_handler.compute())
+
+            self.IS_handler.update(imgs_dist2)
+            print("Inception Score from TorchMetrics:", self.IS_handler.compute())
+            print("Inception Scores from Github:", IS(sample_imgs, resize=True))
+            
             vutils.save_image(samples.cpu().data,
                               os.path.join(self.logger.log_dir , 
                                            "Samples",      

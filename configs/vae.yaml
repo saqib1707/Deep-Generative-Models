@@ -5,8 +5,7 @@ model_params:
 
 
 data_params:
-#   data_path: "data/chest_xray_combined/"
-  data_path: "data/chest_xray_separate/"
+  data_path: "data/chest_xray/sep_train_test/"
   train_batch_size: 64
   val_batch_size:  4
   patch_size: 64
@@ -26,7 +25,6 @@ trainer_params:
   max_epochs: 100
 
 logging_params:
-#   save_dir: "logs/chest_xray_combined/"
-  save_dir: "logs/chest_xray_separate/"
-  name: "VanillaVAE_022122"
+  save_dir: "logs/chest_xray/sep_train_test/"
+  name: "VanillaVAE"
  

@@ -8,11 +8,14 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.datasets import CelebA
+import torchvision.utils as vutils
 import zipfile
 import glob
 import random
 import cv2
 import PIL
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 # Add your custom dataset class here
@@ -171,8 +174,10 @@ class VAEDataset(LightningDataModule):
 #       =========================  ChestXRay Dataset  ========================= 
 
         # loading the training data
-        train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.CenterCrop(1000),
-                                                  transforms.Resize(self.patch_size), transforms.ToTensor(),])
+        train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                               transforms.Resize(self.patch_size), 
+                                               transforms.CenterCrop(self.patch_size),
+                                               transforms.ToTensor(),])
 
         train_data_path = os.path.join(self.data_dir, "train/")
         print("Train Data Path:", train_data_path)
@@ -190,8 +195,10 @@ class VAEDataset(LightningDataModule):
         # ------------------------------------------------------------------------------
         
         # loading the validation data
-        val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.CenterCrop(1000),
-                                                transforms.Resize(self.patch_size), transforms.ToTensor(),])
+        val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                             transforms.Resize(self.patch_size),
+                                             transforms.CenterCrop(self.patch_size),
+                                             transforms.ToTensor(),])
 
         val_data_path = os.path.join(self.data_dir, "val/")
         print("Validation Data Path:", val_data_path)
@@ -206,8 +213,10 @@ class VAEDataset(LightningDataModule):
         # ------------------------------------------------------------------------------
     
         # loading the test data
-        test_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.CenterCrop(1000),
-                                                transforms.Resize(self.patch_size), transforms.ToTensor(),])
+        test_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), 
+                                              transforms.Resize(self.patch_size), 
+                                              transforms.CenterCrop(self.patch_size),
+                                              transforms.ToTensor(),])
 
         test_data_path = os.path.join(self.data_dir, "test/")
         print("Test Data Path:", test_data_path)
@@ -222,13 +231,23 @@ class VAEDataset(LightningDataModule):
 #       ===============================================================
         
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(
+        tr_dataloader = DataLoader(
             self.train_dataset,
             batch_size=self.train_batch_size,
             num_workers=self.num_workers,
             shuffle=True,
             pin_memory=self.pin_memory,
         )
+        
+        real_batch = next(iter(tr_dataloader))
+        
+        plt.figure(figsize=(8,8))
+        plt.axis("off")
+        plt.title("Training Images")
+        plt.imshow(np.transpose(vutils.make_grid(real_batch[0][:64], padding=2, normalize=True).cpu(),(1,2,0)))
+        plt.show()
+        
+        return tr_dataloader
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         return DataLoader(

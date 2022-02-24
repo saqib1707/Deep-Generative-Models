@@ -3,6 +3,7 @@ from models import BaseVAE
 from torch import nn
 from torch.nn import functional as F
 from .types_ import *
+from torchsummary import summary
 
 
 class VanillaVAE(BaseVAE):
@@ -15,6 +16,7 @@ class VanillaVAE(BaseVAE):
         super(VanillaVAE, self).__init__()
 
         self.latent_dim = latent_dim
+        self.input_channels = in_channels
 
         modules = []
         if hidden_dims is None:
@@ -71,6 +73,8 @@ class VanillaVAE(BaseVAE):
                             nn.Conv2d(hidden_dims[-1], out_channels= 3,
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
+        
+#         summary(self.encoder, (self.input_channels, 64, 64))
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """

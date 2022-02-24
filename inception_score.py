@@ -5,9 +5,12 @@ from torch.nn import functional as F
 import torch.utils.data
 
 from torchvision.models.inception import inception_v3
+import torchvision.transforms as transforms
 
 import numpy as np
 from scipy.stats import entropy
+import PIL
+
 
 def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     """Computes the inception score of the generated images imgs
@@ -18,9 +21,15 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     splits -- number of splits
     """
     N = len(imgs)
+    print("Shape of Imgs:", N, imgs[0].shape)
+    
+    for i in range(N):
+        assert imgs[i].shape == imgs[0].shape
+    
+    print("Assertion success!")
 
     assert batch_size > 0
-    assert N > batch_size
+    assert N >= batch_size
 
     # Set up dtype
     if cuda:
@@ -37,14 +46,26 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     inception_model = inception_v3(pretrained=True, transform_input=False).type(dtype)
     inception_model.eval();
     up = nn.Upsample(size=(299, 299), mode='bilinear').type(dtype)
+    
+    def interpolate_using_PIL(batch):
+        arr = []
+        for img in batch:
+            pil_img = transforms.ToPILImage()(img)
+            resized_img = pil_img.resize((299, 299), PIL.Image.BILINEAR)
+            arr.append(transforms.ToTensor()(np.array(resized_img)))
+            
+        return torch.stack(arr).type(dtype)
+    
     def get_pred(x):
         if resize:
             x = up(x)
+#             x = interpolate_using_PIL(x)
+
         x = inception_model(x)
         return F.softmax(x).data.cpu().numpy()
 
     # Get predictions
-    preds = np.zeros((N, 1000))
+    preds = np.zeros((N, 1000))    # number of classes = 1000
 
     for i, batch in enumerate(dataloader, 0):
         batch = batch.type(dtype)
