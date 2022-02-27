@@ -33,7 +33,7 @@ class VanillaVAE(BaseVAE):
             )
             in_channels = h_dim
         
-        self.last_wh = 2
+        self.last_wh = 8
 
         self.encoder = nn.Sequential(*modules)
         self.fc_mu = nn.Linear(hidden_dims[-1] * self.last_wh * self.last_wh, latent_dim)

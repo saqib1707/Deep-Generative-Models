@@ -6,8 +6,8 @@ model_params:
 
 data_params:
   data_path: "data/chest_xray/sep_train_test/"
-  train_batch_size: 64
-  val_batch_size:  4
+  train_batch_size: 16
+  val_batch_size: 4
   patch_size: 64
   num_workers: 4
 
@@ -16,13 +16,13 @@ exp_params:
   LR: 0.005
   weight_decay: 0.0
   scheduler_gamma: 0.95
-  kld_weight: 0.00025
+  kld_weight: 0.0025
   manual_seed: 1265
   leaky_relu_weight: 0.01
 
 trainer_params:
   gpus: [0]
-  max_epochs: 100
+  max_epochs: 50
 
 logging_params:
   save_dir: "logs/chest_xray/sep_train_test/"

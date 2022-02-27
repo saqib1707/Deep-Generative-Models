@@ -1,5 +1,6 @@
 data/
 VanillaVAE/version_0/
+logs/chest_xray/sep_train_test/VanillaVAE/version_*/checkpoints/*
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
